@@ -135,44 +135,27 @@ node content may be updated at will.
 !*/
 
 //a Imports and exports
-pub mod hierarchy;
+pub use model3d::{Mat3, Mat4, Quat, Vec3, Vec4, Transformation};
 
-mod types;
-pub use types::{Mat3, Mat4, Quat, Vao, Vec3, Vec4};
-mod transformation;
-pub use transformation::Transformation;
-
-mod bone;
-mod bone_set;
-mod bone_pose;
-mod bone_pose_set;
-pub use bone::Bone;
-pub use bone_set::BoneSet;
-pub use bone_pose::BonePose;
-pub use bone_pose_set::BonePoseSet;
-
-mod byte_buffer;
-pub use byte_buffer::ByteBuffer;
-
-mod traits;
-pub use traits::{Texture};
+mod gl_buffer;
+mod buffer;
+mod texture;
 mod material;
-pub use material::{BaseData, Material, BaseMaterial, TexturedMaterial, PbrMaterial};
+mod vertices;
+mod shader_instantiable;
+mod renderable;
+mod utils;
+mod traits;
+mod shader;
+mod program;
 
-mod instantiable;
-mod instance;
-pub use instantiable::Instantiable;
-pub use instance::Instance;
-
-//mod drawable;
-mod buffer_data;
-pub use buffer_data::{BufferClientID, BufferData};
-mod buffer_view;
-pub use buffer_view::BufferView;
-
-//pub mod primitive;
-//pub mod mesh;
-//pub mod object;
-
-//pub mod shader;
-//pub use shader::{ShaderClass};
+pub use gl_buffer::GlBuffer;
+pub use buffer::{IndexBuffer, VertexBuffer, BufferView};
+pub use texture::Texture;
+pub use material::Material;
+pub use vertices::Vertices;
+pub use shader_instantiable::ShaderInstantiable;
+pub use renderable::{Renderable, RenderContext};
+pub use traits::ShaderClass;
+pub use shader::GlShader;
+pub use program::Program as GlProgram;
