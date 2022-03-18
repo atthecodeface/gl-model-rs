@@ -78,12 +78,6 @@ impl BufferClient<Renderable> for GlBuffer {
 
 //ip GlBuffer
 impl GlBuffer {
-    //mp clone
-    pub fn clone(&self) -> Self {
-        let gl = self.gl.clone();
-        Self { gl }
-    }
-
     //ap gl_buffer
     /// Get the gl_buffer associated with the data
     pub fn gl_buffer(&self) -> gl::types::GLuint {
@@ -136,7 +130,7 @@ impl GlBuffer {
         unsafe {
             // stops the indices messing up other VAO
             gl::BindVertexArray(0);
-            let buffer = view.data.as_ptr().add(view.offset as usize);
+            let buffer = view.data.as_ptr().add(view.byte_offset as usize);
             gl::GenBuffers(1, (&mut gl) as *mut gl::types::GLuint );
             gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, gl );
             gl::BufferData(gl::ELEMENT_ARRAY_BUFFER,

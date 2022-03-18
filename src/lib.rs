@@ -158,4 +158,14 @@ pub use shader_instantiable::ShaderInstantiable;
 pub use renderable::{Renderable, RenderContext};
 pub use traits::ShaderClass;
 pub use shader::GlShader;
+pub use program::{UniformId};
 pub use program::Program as GlProgram;
+
+pub fn check_errors() -> Result<(), String> {
+    match (unsafe {gl::GetError()}) {
+        gl::NO_ERROR => Ok(()),
+        gl::INVALID_ENUM => Err(format!("Invalid enum (Gl error)")),
+        gl::INVALID_VALUE => Err(format!("Invalid value (Gl error)")),
+        x => Err(format!("GL had error {}",x)),
+    }
+}

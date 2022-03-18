@@ -42,6 +42,16 @@ pub struct Program {
     id: gl::types::GLuint,
     /// attribute names
     attr_names : Vec<(gl::types::GLuint, model3d::VertexAttr)>,
+    /// attribute names
+    uniforms : Vec<(gl::types::GLint, UniformId)>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum UniformId {
+    ModelMatrix,
+    MeshMatrix,
+    BoneScale,
+    BoneMatrices,
 }
 
 ///ip Program
@@ -64,6 +74,17 @@ impl Program {
             Err(format!("Unable to find attribute {} in program", name))
         } else {
             self.attr_names.push( (attr_index as gl::types::GLuint, vertex_attr) );
+            Ok(self)
+        }
+    }
+
+    //mp add_uniform_name
+    pub fn add_uniform_name(&mut self, name:&str, uniform_id:UniformId) -> Result<&mut Self, String> {
+        let uniform_index = unsafe { gl::GetUniformLocation( self.id, CString::new(name).unwrap().as_ptr() ) };
+        if uniform_index < 0 {
+            Err(format!("Unable to find uniform {} in program", name))
+        } else {
+            self.uniforms.push( (uniform_index as gl::types::GLint, uniform_id) );
             Ok(self)
         }
     }
@@ -115,9 +136,11 @@ impl Program {
         }
 
         let attr_names = Vec::new();
+        let uniforms = Vec::new();
         Ok(Program {
             id: program_id,
             attr_names,
+            uniforms,
         }
         )
     }
@@ -152,26 +175,14 @@ impl ShaderClass for Program {
     {
         &self.attr_names
     }
-}
-
-//ip ShaderProgramClass for Program
-/*
-impl ShaderProgramClass for Program {
-    //fp get_attr
-    /// Get an attribute from the Program
-    fn get_attr(&self, key: &str) -> Option<u32> {
-        if key == "vPosition" {
-            Some(0)
-        } else {
-            None
+    fn uniform(&self, uniform_id:UniformId) -> Option<gl::types::GLint>
+    {
+        for (gl_id, u) in &self.uniforms {
+            if *u == uniform_id {
+                return Some(*gl_id);
+            }
         }
-    }
-
-    //fp get_uniform
-    /// No uniforms are supported so return None for all requests
-    fn get_uniform(&self, _: &str) -> Option<u32> {
         None
     }
 }
- */
 

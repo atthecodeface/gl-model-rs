@@ -49,7 +49,7 @@ pub struct VertexBuffer {
     /// The type of each element
     pub ele_type : BufferElementType,
     /// Offset from start of buffer to first byte of data
-    pub offset : u32,
+    pub byte_offset : u32,
     /// Stride of data in the buffer - 0 for count*sizeof(ele_type)
     pub stride : u32,
 }
@@ -69,7 +69,7 @@ impl VertexBuffer {
         view.data.create_client(render_context);
         self.count = view.count;
         self.ele_type = view.ele_type;
-        self.offset = view.offset;
+        self.byte_offset = view.byte_offset;
         self.stride = view.stride;
         self.gl_buffer = view.data.borrow_client().clone();
     }
@@ -96,7 +96,7 @@ impl VertexBuffer {
                                     self.gl_element_type(),
                                     gl::FALSE, // normalized
                                     self.stride as i32, // stride
-                                    std::mem::transmute::<usize, *const std::os::raw::c_void>(self.offset as usize) // ptr
+                                    std::mem::transmute::<usize, *const std::os::raw::c_void>(self.byte_offset as usize) // ptr
                                     );
         }
     }
@@ -110,11 +110,11 @@ impl Default for VertexBuffer {
         let gl_buffer = GlBuffer::default();
         let count  = 0;
         let ele_type = BufferElementType::Float32;
-        let offset = 0;
+        let byte_offset = 0;
         let stride = 0;
         Self {
             gl_buffer,
-            count, ele_type, offset, stride
+            count, ele_type, byte_offset, stride
         }
     }
 }
@@ -124,7 +124,7 @@ impl std::fmt::Display for VertexBuffer {
     fn fmt(&self, f:&mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         write!(f,"Vert({}+{}:#{} {:?} @{})",
                self.gl_buffer.gl_buffer(),
-               self.offset,
+               self.byte_offset,
                self.count,
                self.ele_type,
                self.stride

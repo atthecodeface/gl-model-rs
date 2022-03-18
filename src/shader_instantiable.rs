@@ -23,7 +23,7 @@ limitations under the License.
 //a Imports
 use geo_nd::{matrix};
 
-use crate::{Mat4, Transformation, Renderable, Vertices, ShaderClass};
+use crate::{Mat4, Transformation, Renderable, Vertices, ShaderClass, UniformId};
 
 //a Vao
 /// The Vao *must* be owned by a ShaderInstantiable, which borrows
@@ -40,6 +40,7 @@ impl Vao {
     //fp new
     pub fn new(shader_class:&dyn ShaderClass, vertices:&Vertices) -> Self {
         let (indices, position, attrs) = vertices.borrow();
+        crate::check_errors().unwrap();
         let mut gl_vao = 0;
         unsafe {
             gl::GenVertexArrays(1, &mut gl_vao);
@@ -48,22 +49,26 @@ impl Vao {
                            indices.gl_buffer() );
             println!("VAO {} {:?}", gl_vao, indices);
         }
+        crate::check_errors().unwrap();
         for (index, vertex_attr) in shader_class.attr_names() {
             if *vertex_attr == model3d::VertexAttr::Position {
-                println!(".. posn {} {:?}", *index, position);
+                println!(".. posn {} {}", *index, position);
                 position.bind_to_vao(*index);
+                crate::check_errors().unwrap();
             } else {
                 for (va, buffer) in attrs {
                     if *vertex_attr == *va {
-                        println!(".. {:?} {} {:?}", *vertex_attr, *index, buffer);
+                        println!(".. {:?} {} {}", *vertex_attr, *index, buffer);
                         buffer.bind_to_vao(*index);
                     }
+                    crate::check_errors().unwrap();
                 }
             }
         }
         unsafe {
             gl::BindVertexArray(0);
         }
+        crate::check_errors().unwrap();
         Self {gl_vao}
     }
     //fp bind_vao
@@ -112,11 +117,16 @@ impl <'a> ShaderInstantiable<'a> {
     // gl_draw
     pub fn gl_draw(&self, instance:&model3d::Instance<Renderable>) {
         // shader camera matrix (already set?)
-        let mat = instance.transformation.mat4();
-        // GL.glUniformMatrix4fv(program.uniforms["uModelMatrix"], 1, False, mat)
+            if let Some(u) = self.shader_class.uniform(UniformId::ModelMatrix) {
+                let mat = instance.transformation.mat4();
+                unsafe {gl::UniformMatrix4fv(u, 1, gl::FALSE, mat.as_ptr());}
+            }
         for (i, p) in self.instantiable.render_recipe.primitives.iter().enumerate() {
-            let m = self.instantiable.render_recipe.matrix_for_primitives[i];
-            // set uMeshMatrix to render_recipe.matrices[m] (if different to last)
+            // set MeshMatrix (if different to last)
+            if let Some(u) = self.shader_class.uniform(UniformId::MeshMatrix) {
+                let m = self.instantiable.render_recipe.matrix_for_primitives[i];
+                unsafe {gl::UniformMatrix4fv(u, 1, gl::FALSE, self.instantiable.render_recipe.matrices[m].as_ptr());}
+            }
             // set material info to that for shader_instantiable p.material_index,(if different to last)
             // (if p.vertices_index different to last)
             self.vaos[p.vertices_index()].bind_vao();
