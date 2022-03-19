@@ -49,7 +49,7 @@ impl Vao {
                            indices.gl_buffer() );
             println!("VAO {} {:?}", gl_vao, indices);
         }
-        crate::check_errors().unwrap();
+        crate::check_errors().expect("Added indices to VAO");
         for (index, vertex_attr) in shader_class.attr_names() {
             if *vertex_attr == model3d::VertexAttr::Position {
                 println!(".. posn {} {}", *index, position);

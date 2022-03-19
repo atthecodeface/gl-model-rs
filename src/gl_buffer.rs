@@ -149,7 +149,7 @@ impl Drop for GlBuffer {
     //fp drop
     /// If an OpenGL buffer has been created for this then delete it
     fn drop(&mut self) {
-        if !self.is_none() {
+        if Rc::strong_count(&self.gl)==1 && !self.is_none() {
             unsafe {
                 gl::DeleteBuffers(1, self.as_ptr() );
             }

@@ -161,11 +161,30 @@ pub use shader::GlShader;
 pub use program::{UniformId};
 pub use program::Program as GlProgram;
 
-pub fn check_errors() -> Result<(), String> {
-    match (unsafe {gl::GetError()}) {
-        gl::NO_ERROR => Ok(()),
-        gl::INVALID_ENUM => Err(format!("Invalid enum (Gl error)")),
-        gl::INVALID_VALUE => Err(format!("Invalid value (Gl error)")),
-        x => Err(format!("GL had error {}",x)),
+pub fn check_errors() -> Result<(), Vec<String>> {
+    let mut v = Vec::new();
+    loop {
+        match (unsafe {gl::GetError()}) {
+            gl::NO_ERROR => {
+                break;
+            },
+            gl::INVALID_ENUM => {
+                v.push(format!("Invalid enum (Gl error)"));
+            }
+            gl::INVALID_VALUE =>  {
+                v.push(format!("Invalid value (Gl error)"));
+            }
+            gl::INVALID_OPERATION =>  {
+                v.push(format!("Invalid operation (Gl error)"));
+            }
+            x => {
+                v.push(format!("GL had error {}",x));
+            }
+        }
+    }
+    if v.is_empty() {
+        Ok(())
+    } else {
+        Err(v)
     }
 }

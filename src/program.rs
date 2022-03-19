@@ -53,6 +53,8 @@ pub enum UniformId {
     MeshMatrix,
     BoneScale,
     BoneMatrices,
+    User(usize),
+    Block(usize),
 }
 
 ///ip Program
@@ -86,6 +88,17 @@ impl Program {
             Err(format!("Unable to find uniform {} in program", name))
         } else {
             self.uniforms.push( (uniform_index as gl::types::GLint, uniform_id) );
+            Ok(self)
+        }
+    }
+
+    //mp add_uniform_block_name
+    pub fn add_uniform_block_name(&mut self, name:&str, id:usize) -> Result<&mut Self, String> {
+        let uniform_index = unsafe { gl::GetUniformBlockIndex( self.id, CString::new(name).unwrap().as_ptr() ) };
+        if uniform_index < 0 {
+            Err(format!("Unable to find uniform block {} in program", name))
+        } else {
+            self.uniforms.push( (uniform_index as gl::types::GLint, UniformId::Block(id)) );
             Ok(self)
         }
     }

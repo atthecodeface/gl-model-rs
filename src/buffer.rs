@@ -189,6 +189,7 @@ impl IndexBuffer {
         gl_buffer.of_indices(view);
         let count = view.count;
         let ele_type = view.ele_type;
+        println!("Create indices buffer {} of view {:?}#{}", gl_buffer, view.ele_type, view.count);
         Self {
             gl_buffer,
             count, ele_type
