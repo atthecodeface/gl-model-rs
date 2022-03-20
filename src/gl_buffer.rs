@@ -108,6 +108,7 @@ impl GlBuffer {
                            data.byte_length as gl::types::GLsizeiptr,
                            data.as_ptr() as *const gl::types::GLvoid,
                            gl::STATIC_DRAW );
+            gl::BindBuffer(gl::ARRAY_BUFFER, 0 ); // unbind to protect
         }
         self.gl = Rc::new(gl);
     }
@@ -137,6 +138,28 @@ impl GlBuffer {
                            byte_length as gl::types::GLsizeiptr,
                            buffer as *const gl::types::GLvoid,
                            gl::STATIC_DRAW );
+            gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, 0 ); // unbind to protect
+        }
+        self.gl = Rc::new(gl);
+    }
+
+    //mp uniform_buffer
+    /// Create the OpenGL 
+    pub fn uniform_buffer<F:Sized>(&mut self, data:&[F]) {
+        assert!(self.is_none());
+        let buffer = data.as_ptr();
+        let byte_length = std::mem::size_of::<F>() * data.len();
+        let mut gl : gl::types::GLuint = 0;
+        unsafe {
+            gl::BindVertexArray(0);
+            gl::GenBuffers(1, (&mut gl) as *mut gl::types::GLuint );
+            gl::BindBuffer(gl::UNIFORM_BUFFER, gl );
+            gl::BufferData(gl::UNIFORM_BUFFER,
+                           byte_length as gl::types::GLsizeiptr,
+                           buffer as *const gl::types::GLvoid,
+                           gl::STATIC_DRAW );
+            gl::BindBuffer(gl::UNIFORM_BUFFER, 0 ); // unbind to protect
+            println!("Uniform buffer {} bound @{:?}+{}", gl, buffer, byte_length);
         }
         self.gl = Rc::new(gl);
     }

@@ -54,7 +54,7 @@ pub enum UniformId {
     BoneScale,
     BoneMatrices,
     User(usize),
-    Block(usize),
+    Buffer(usize),
 }
 
 ///ip Program
@@ -84,7 +84,7 @@ impl Program {
     //mp add_uniform_name
     pub fn add_uniform_name(&mut self, name:&str, uniform_id:UniformId) -> Result<&mut Self, String> {
         let uniform_index = unsafe { gl::GetUniformLocation( self.id, CString::new(name).unwrap().as_ptr() ) };
-        if uniform_index < 0 {
+        if uniform_index == (gl::INVALID_INDEX as i32) {
             Err(format!("Unable to find uniform {} in program", name))
         } else {
             self.uniforms.push( (uniform_index as gl::types::GLint, uniform_id) );
@@ -92,13 +92,13 @@ impl Program {
         }
     }
 
-    //mp add_uniform_block_name
-    pub fn add_uniform_block_name(&mut self, name:&str, id:usize) -> Result<&mut Self, String> {
+    //mp add_uniform_buffer_name
+    pub fn add_uniform_buffer_name(&mut self, name:&str, id:usize) -> Result<&mut Self, String> {
         let uniform_index = unsafe { gl::GetUniformBlockIndex( self.id, CString::new(name).unwrap().as_ptr() ) };
-        if uniform_index < 0 {
+        if uniform_index == gl::INVALID_INDEX {
             Err(format!("Unable to find uniform block {} in program", name))
         } else {
-            self.uniforms.push( (uniform_index as gl::types::GLint, UniformId::Block(id)) );
+            self.uniforms.push( (uniform_index as gl::types::GLint, UniformId::Buffer(id)) );
             Ok(self)
         }
     }
