@@ -1,3 +1,8 @@
+//a Imports
+
+//a Texture
+//tp Texture
+/// A null texture for now
 #[derive(Debug)]
 pub struct Texture (u32);
 impl std::fmt::Display for Texture {
@@ -5,5 +10,7 @@ impl std::fmt::Display for Texture {
         write!(fmt, "{}", self.0)
     }
 }
+
+//ip TextureClient for Texture
 impl model3d::TextureClient for Texture {
 }

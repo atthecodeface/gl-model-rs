@@ -20,14 +20,11 @@ limitations under the License.
 
 /*!
 
-A shader program consists of a number of [Shader]s linked together
+A shader program consists of a number of [GlShader]s linked together
 
 !*/
 
 //a Imports
-use gl;
-use std;
-use std::ffi::CStr;
 use std::ffi::CString;
 
 use crate::utils;
@@ -36,24 +33,33 @@ use crate::ShaderClass;
 
 //a Program
 //tp Program
-/// Program
+/// A shader program, with its 'known' attributes and uniforms
 pub struct Program {
     /// The GL ID of the program
     id: gl::types::GLuint,
     /// attribute names
-    attr_names : Vec<(gl::types::GLuint, model3d::VertexAttr)>,
+    attributes : Vec<(gl::types::GLuint, model3d::VertexAttr)>,
     /// attribute names
     uniforms : Vec<(gl::types::GLint, UniformId)>,
 }
 
+//tp UniformId
+/// An enumeration of uniforms - that this crate particularly cares about
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum UniformId {
+    /// The view matrix uniform - once per framebuffer render
     ViewMatrix,
+    /// The model matrix uniform - once per model instance
     ModelMatrix,
+    /// The mesh matrix uniform - once per model mesh
     MeshMatrix,
+    /// The Bone data uniform - once per model
     BoneScale,
+    /// The Bone data uniform - once per model
     BoneMatrices,
+    /// User uniform - dependent on the program.
     User(usize),
+    /// User uniform buffer - dependent on the program.
     Buffer(usize),
 }
 
@@ -66,24 +72,27 @@ impl Program {
         for (kind, src) in srcs {
             shaders.push( GlShader::from_source(&CString::new(*src).unwrap(), *kind)? );
         }
-        Self::from_shaders(&shaders)
+        Self::from_shaders(shaders)
     }
     
     //mp add_attr_name
+    /// Add an attribute to the [Program] from its name (that should be in the shader source)
     pub fn add_attr_name(&mut self, name:&str, vertex_attr:model3d::VertexAttr) -> Result<&mut Self, String> {
-        // let attr_index = gl::GetUniformLocation( self.id, CString::new(name).unwrap().as_ptr() );
-        let attr_index = unsafe {gl::GetAttribLocation( self.id, CString::new(name).unwrap().as_ptr() ) };
+        let name_c = CString::new(name).unwrap();
+        let attr_index = unsafe {gl::GetAttribLocation( self.id, name_c.as_ptr() ) };
         if attr_index < 0 {
             Err(format!("Unable to find attribute {} in program", name))
         } else {
-            self.attr_names.push( (attr_index as gl::types::GLuint, vertex_attr) );
+            self.attributes.push( (attr_index as gl::types::GLuint, vertex_attr) );
             Ok(self)
         }
     }
 
     //mp add_uniform_name
+    /// Add a uniform to the [Program] from its name (that should be in the shader source)
     pub fn add_uniform_name(&mut self, name:&str, uniform_id:UniformId) -> Result<&mut Self, String> {
-        let uniform_index = unsafe { gl::GetUniformLocation( self.id, CString::new(name).unwrap().as_ptr() ) };
+        let name_c = CString::new(name).unwrap();
+        let uniform_index = unsafe { gl::GetUniformLocation( self.id, name_c.as_ptr() ) };
         if uniform_index == (gl::INVALID_INDEX as i32) {
             Err(format!("Unable to find uniform {} in program", name))
         } else {
@@ -93,8 +102,10 @@ impl Program {
     }
 
     //mp add_uniform_buffer_name
+    /// Add a uniform buffer (or 'block') to the [Program] from its name (that should be in the shader source)
     pub fn add_uniform_buffer_name(&mut self, name:&str, id:usize) -> Result<&mut Self, String> {
-        let uniform_index = unsafe { gl::GetUniformBlockIndex( self.id, CString::new(name).unwrap().as_ptr() ) };
+        let name_c = CString::new(name).unwrap();
+        let uniform_index = unsafe { gl::GetUniformBlockIndex( self.id, name_c.as_ptr() ) };
         if uniform_index == gl::INVALID_INDEX {
             Err(format!("Unable to find uniform block {} in program", name))
         } else {
@@ -105,67 +116,55 @@ impl Program {
 
     //fp from_shaders
     /// Create a program from a slice of shaders; link the shaders together
-    pub fn from_shaders(shaders: &[GlShader]) -> Result<Self, String> {
-        let program_id = unsafe { gl::CreateProgram() };
-
-        for shader in shaders {
-            unsafe {
+    pub fn from_shaders(shaders: Vec<GlShader>) -> Result<Self, String> {
+        let program_id = unsafe {
+            let program_id = gl::CreateProgram();
+            for shader in &shaders {
                 gl::AttachShader(program_id, shader.id());
             }
-        }
-
-        unsafe {
             gl::LinkProgram(program_id);
-        }
+            program_id
+        };
 
-        let mut success: gl::types::GLint = 1;
-        unsafe {
-            gl::GetProgramiv(program_id, gl::LINK_STATUS, &mut success);
-        }
-
-        if success == 0 {
-            let mut len: gl::types::GLint = 0;
-            unsafe {
-                gl::GetProgramiv(program_id, gl::INFO_LOG_LENGTH, &mut len);
-            }
-
-            let error = utils::create_whitespace_cstring_with_len(len as usize);
-
-            unsafe {
-                gl::GetProgramInfoLog(
-                    program_id,
-                    len,
-                    std::ptr::null_mut(),
-                    error.as_ptr() as *mut gl::types::GLchar,
-                );
-            }
-
-            return Err(error.to_string_lossy().into_owned());
-        }
+        if utils::get_programiv(program_id, gl::LINK_STATUS) == 0 {
+            let err = utils::get_shader_error( program_id,
+                                         |id| utils::get_programiv(id, gl::INFO_LOG_LENGTH),
+                                         |id, len, buf| unsafe {
+                                             gl::GetProgramInfoLog( id, len, std::ptr::null_mut(), buf)
+                                         } );
+            Err(format!("Shader linking error {}", err))?;
+        }                
+        utils::check_errors().expect("Linked");
 
         for shader in shaders {
             unsafe {
                 gl::DetachShader(program_id, shader.id());
+                // Don't delete the shader - that happens when the shader is dropped
             }
         }
 
-        let attr_names = Vec::new();
+        let attributes = Vec::new();
         let uniforms = Vec::new();
         Ok(Program {
             id: program_id,
-            attr_names,
+            attributes,
             uniforms,
         }
         )
     }
 
+    //fp id
+    /// Get the program id
+    #[inline]
     pub fn id(&self) -> gl::types::GLuint {
         self.id
     }
 
+    //fp set_used
+    /// Use the program
     pub fn set_used(&self) {
         unsafe {
-            gl::UseProgram(self.id);
+            gl::UseProgram(self.id());
         }
     }
 }
@@ -185,9 +184,9 @@ impl Drop for Program {
 
 //ip ShaderClass for Program
 impl ShaderClass for Program {
-    fn attr_names(&self) -> &[(gl::types::GLuint, model3d::VertexAttr)]
+    fn attributes(&self) -> &[(gl::types::GLuint, model3d::VertexAttr)]
     {
-        &self.attr_names
+        &self.attributes
     }
     fn uniform(&self, uniform_id:UniformId) -> Option<gl::types::GLint>
     {

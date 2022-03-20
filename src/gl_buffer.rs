@@ -23,31 +23,20 @@ use crate::{Renderable, RenderContext};
 
 //a GlBuffer
 //tp GlBuffer
-/// A simple structure that can be used in an Rc; when dropped it
-/// will drop the OpenGl buffer that it contains, if any
+/// A simple structure provides a reference-counted OpenGl buffer;
+/// when the last reference is dropped it will drop the OpenGl buffer
+/// that it contains, if any
 ///
-/// Rewrite me:
-/// 
-/// A subset of a data buffer for use with OpenGL vertex data.
+/// Its actual buffer is created from vertex data or from indices;
+/// from vertex data it is created *only* on the first invocation
+/// (from a [model3d::BufferData]) as subsequent 'creations' will be
+/// duplicates - the reference count should ont be changed either as
+/// it is the *same* BufferData instance that is invoking the creation
 ///
-/// A data buffer may contain a lot of data per vertex, such as
-/// position, normal, tangent, color etc.  A [VertexBuffer] is
-/// then a subset of this data - perhaps picking out just the
-/// position, for example, for a set of vertices
-///
-/// The data buffer may, indeed, contain data for more than one object
-/// - and the objects may have different data per vertex. The data
-/// buffer is pretty free-form, it is a `View` on the `Data` which
-/// identifies the object it applies to, and the vertex attributes
-/// required
-///
-/// A data buffer may then be used by many `View`s. Each `View` may be
-/// used by many primitives for a single model; alternatively,
-/// primitives may have their own individual Views.
-///
-/// Of course the model may be instantiated many times in a single scene.
-///
-/// OpenGL will have one copy of the data for all the primitives and models.
+/// For indices a buffer is created for the [model3d::BufferView], as
+/// the buffer in this case must be an OpenGL ELEMENT_ARRAY_BUFFER;
+/// this could perhaps be optimized to reduce the number of OpenGL
+/// buffers with much more code.
 #[derive(Debug, Clone)]
 pub struct GlBuffer {
     /// The OpenGL Buffer

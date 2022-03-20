@@ -21,10 +21,7 @@ limitations under the License.
 //
 
 //a Imports
-use std::rc::Rc;
-use std::cell::RefCell;
-
-use model3d::{BufferData, ViewClient, BufferElementType};
+use model3d::{ViewClient, BufferElementType, VertexAttr};
 
 use crate::GlBuffer;
 use crate::{Renderable, RenderContext};
@@ -87,6 +84,7 @@ impl VertexBuffer {
     }
 
     //fp bind_to_vao
+    /// Bind the buffer as a vertex attribute to the current VAO
     pub fn bind_to_vao(&self, attr_index:gl::types::GLuint) {
         unsafe {
             gl::BindBuffer(gl::ARRAY_BUFFER, self.gl_buffer());
@@ -167,14 +165,6 @@ impl Default for IndexBuffer {
 
 //ip IndexBuffer
 impl IndexBuffer {
-    //mp clone
-    pub fn clone(&self) -> Self {
-        let gl_buffer = self.gl_buffer.clone();
-        let count = self.count;
-        let ele_type = self.ele_type;
-        Self { gl_buffer, count, ele_type }
-    }
-
     //ap gl_buffer
     /// Get the gl_buffer associated with the data, assuming its
     /// `gl_create` method has been invoked at least once
@@ -184,7 +174,7 @@ impl IndexBuffer {
 
     //mp of_view
     /// Create the OpenGL ARRAY_BUFFER buffer using STATIC_DRAW - this copies the data in to OpenGL
-    fn of_view(view:&model3d::BufferView<Renderable>, render_context:&mut RenderContext) -> Self {
+    fn of_view(view:&model3d::BufferView<Renderable>, _render_context:&mut RenderContext) -> Self {
         let mut gl_buffer = GlBuffer::default();
         gl_buffer.of_indices(view);
         let count = view.count;
@@ -197,6 +187,7 @@ impl IndexBuffer {
     }
 
     //fp bind_to_vao
+    /// Bind the index buffer to the current VAO
     pub fn bind_to_vao(&self) {
         unsafe {
             gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER,
@@ -242,12 +233,19 @@ impl Default for BufferView {
 
 //ip BufferView
 impl BufferView {
+    //fp as_index_buffer
+    /// Return the [IndexBuffer] that this [BufferView] is of - if it
+    /// is not a view of indices then panic
     pub fn as_index_buffer(&self) -> &IndexBuffer {
         match self {
             Self::IndexBuffer(index_buffer) => index_buffer,
             _ => panic!("Attempt to borrow a VertexBuffer as an IndexBuffer")
         }
     }
+
+    //fp as_vertex_buffer
+    /// Return the [VertexBuffer] that this [BufferView] is of - if it
+    /// is not a view of vertex attributess then panic
     pub fn as_vertex_buffer(&self) -> &VertexBuffer {
         match self {
             Self::VertexBuffer(vertex_buffer) => vertex_buffer,
@@ -260,8 +258,8 @@ impl BufferView {
 impl ViewClient<Renderable> for BufferView {
     //mp create
     /// Create the OpenGL ARRAY_BUFFER buffer using STATIC_DRAW - this copies the data in to OpenGL
-    fn create(&mut self, view:&model3d::BufferView<Renderable>, is_indices:bool, render_context:&mut RenderContext) {
-        if is_indices {
+    fn create(&mut self, view:&model3d::BufferView<Renderable>, attr:VertexAttr, render_context:&mut RenderContext) {
+        if attr == VertexAttr::Indices {
             let index_buffer = IndexBuffer::of_view(view, render_context);
             *self = BufferView::IndexBuffer(index_buffer);
         } else {

@@ -16,36 +16,17 @@ limitations under the License.
 @brief   Part of OpenGL support library
  */
 
-//a Documentation
-
-/*!
-
-This library provides types for shader-specific objects.
-
-An object instance that may be drawn by a shader is called a ShaderDrawable. This is an instance of a ShaderInstantiable. A ShaderInstantiable is a shader-specific derivation of an ObjectInstantiable.
-
-An ObjectInstantiableData consists of an array of BoneSets, an array
-of [Mat4] for the object's Meshes, and an array of Mesh that the
-object consists of. The ObjectInstantiableData is derived from an
-Object - which in turn is Hierarchy of ObjectNodes, each of the which
-may have a BoneSet, a transformation (relative to its parent) and a
-mesh. The ObjectInstantiableData is, in effect, a flattened set of
-ObjectNode hierarchies. In flattening the nodes BoneSets are cloned in
-to a linear array of BoneSets; each node's mesh has a relative-to-root
-transformation matrix generated and placed in a linear array, and the
-index in to
-
-!*/
-
 //a Imports
 use gl;
 use std;
 use std::ffi::CStr;
 
-use crate::utils;
-
 //a GlShader
 //tp GlShader
+/// An OpenGL shader, of any kind, which can be created from source.
+///
+/// A number of shaders are linked together to make a program; once
+/// the program has been linked, the shader can be dropped.
 pub struct GlShader {
     /// The GL ID of the shader
     id: gl::types::GLuint,
@@ -56,47 +37,44 @@ impl GlShader {
     //fp from_source
     /// Create a shader of a particular kind from source
     pub fn from_source(source: &CStr, kind: gl::types::GLenum) -> Result<Self, String> {
-        let id = unsafe { gl::CreateShader(kind) };
-        unsafe {
-            gl::ShaderSource(id, 1, &source.as_ptr(), std::ptr::null());
-            gl::CompileShader(id);
-        }
-
-        let mut success: gl::types::GLint = 1;
-        unsafe {
-            gl::GetShaderiv(id, gl::COMPILE_STATUS, &mut success);
-        }
-
-        if success == 0 {
-            let mut len: gl::types::GLint = 0;
+        let id = 
             unsafe {
-                gl::GetShaderiv(id, gl::INFO_LOG_LENGTH, &mut len);
-            }
+                let id = gl::CreateShader(kind);
+                gl::ShaderSource(id, 1, &source.as_ptr(), std::ptr::null());
+                gl::CompileShader(id);
+                id
+            };
 
-            let error = utils::create_whitespace_cstring_with_len(len as usize);
-
-            unsafe {
-                gl::GetShaderInfoLog(
-                    id,
-                    len,
-                    std::ptr::null_mut(),
-                    error.as_ptr() as *mut gl::types::GLchar,
-                );
-            }
-
-            return Err(error.to_string_lossy().into_owned());
+        if crate::get_shaderiv(id, gl::COMPILE_STATUS) == 0 {
+            let err = crate::get_shader_error( id,
+                                         |id| crate::get_shaderiv(id, gl::INFO_LOG_LENGTH),
+                                         |id, len, buf| unsafe {
+                                             gl::GetShaderInfoLog( id, len, std::ptr::null_mut(), buf)
+                                         } );
+            if kind == gl::VERTEX_SHADER {
+                Err(format!("Vertex shader error {}", err))
+            } else {
+                Err(format!("Fragment shader error {}", err))
+            }                
+        } else {
+            Ok(Self { id })
         }
-        Ok(Self { id })
     }
 
+    //fp from_vert_source
+    /// Create a [Self] from vertex GLS source
     pub fn from_vert_source(source: &CStr) -> Result<Self, String> {
         Self::from_source(source, gl::VERTEX_SHADER)
     }
 
+    //fp from_vert_source
+    /// Create a [Self] from fragment GLS source
     pub fn from_frag_source(source: &CStr) -> Result<Self, String> {
         Self::from_source(source, gl::FRAGMENT_SHADER)
     }
 
+    //fp id
+    /// Get the shader program id
     pub fn id(&self) -> gl::types::GLuint {
         self.id
     }

@@ -21,16 +21,14 @@ limitations under the License.
 //
 
 //a Imports
-use geo_nd::{matrix};
-
-use crate::{Mat4, Transformation, Renderable, Vertices, ShaderClass, UniformId};
+use crate::{Renderable, Vertices, ShaderClass, UniformId};
 
 //a Vao
-/// The Vao *must* be owned by a ShaderInstantiable, which borrows
+/// The [Vao] *must* be owned by a [ShaderInstantiable], which borrows
 /// from the Instantiable, which owns the GL buffers for the indices
 /// and vertices etc
 ///
-/// Because of this the Vao cannot outlive the ShaderInstantiable, which
+/// Because of this the [Vao] cannot outlive the [ShaderInstantiable], which
 /// cannot outlive the GL buffer for the vertices and indices etc
 struct Vao {
     gl_vao : u32,
@@ -50,7 +48,7 @@ impl Vao {
             println!("VAO {} {:?}", gl_vao, indices);
         }
         crate::check_errors().expect("Added indices to VAO");
-        for (index, vertex_attr) in shader_class.attr_names() {
+        for (index, vertex_attr) in shader_class.attributes() {
             if *vertex_attr == model3d::VertexAttr::Position {
                 println!(".. posn {} {}", *index, position);
                 position.bind_to_vao(*index);
@@ -81,7 +79,7 @@ impl Vao {
 
 //a ShaderInstantiable
 //tp ShaderInstantiable
-/// This is a shader-specific instantiable built from the vertices of an Instantiable
+/// This is a shader-specific instantiable built from the vertices of an [model3d::Instantiable]
 ///
 /// A shader requires a VAO that maps *some* of the vertex attribute
 /// buffers to particular attribute UIDs in the shader program
@@ -90,12 +88,12 @@ impl Vao {
 ///
 /// Possibly it will also require some particullar Uniforms
 ///
-/// An Instance can be renderd with a shader by using the RenderRecipe
-/// from the Instantiable, using the matrix and bone positions in the
+/// An [model3d::Instance] can be renderd with a shader by using the RenderRecipe
+/// from the [model3d::Instantiable], using the matrix and bone positions in the
 /// Instance, and using the VAOs and other data in the
-/// ShaderInstantiable.
+/// [ShaderInstantiable].
 ///
-/// It borrows from the Instantiable and so does not need to its own GlBuffers
+/// It borrows from the [model3d::Instantiable] and so does not need to its own GlBuffers
 pub struct ShaderInstantiable<'a> {
     instantiable : &'a model3d::Instantiable<Renderable>,
     // vaos is 1-to-1 with instantiable::vertices, specific to this shader (class)
@@ -106,6 +104,7 @@ pub struct ShaderInstantiable<'a> {
 //ip ShaderInstantiable
 impl <'a> ShaderInstantiable<'a> {
     //fp new
+    /// Create a new [ShaderInstantiable]
     pub fn new(shader_class:&'a dyn ShaderClass, instantiable: &'a model3d::Instantiable<Renderable>) -> Self {
         let mut vaos = Vec::new();
         for v in &instantiable.vertices {
@@ -115,8 +114,33 @@ impl <'a> ShaderInstantiable<'a> {
     }
 
     // gl_draw
+    /// Draw this [ShaderInstantiable] given an [model3d::Instance] data
     pub fn gl_draw(&self, instance:&model3d::Instance<Renderable>) {
         // shader camera matrix (already set?)
+        /*
+        // for bone_set_pose in instance.bone_set_poses {
+        //  bone_set_pose.update(tick)
+        // }
+            //for (t,m,b) in self.meshes:
+            //if b>=0:
+            //bma = self.bone_set_poses[b]
+            //program.set_uniform_if("uBonesMatrices",
+            //lambda u:GL.glUniformMatrix4fv(u, bma.max_index, False, bma.data))
+            //program.set_uniform_if("uBonesScale",
+            //lambda u: GL.glUniform1f(u, 1.0) )
+            //pass
+        //else:
+            //program.set_uniform_if("uBonesScale",
+            //lambda u: GL.glUniform1f(u, 0.0) )
+            //pass
+            # Provide mesh matrix and material uniforms
+            program.set_uniform_if("uMeshMatrix",
+                                   lambda u: GL.glUniformMatrix4fv(u, 1, False, t.mat4()) )
+
+    instance bone matrices
+    instance model matrix
+    for (i, p) in render_recipe.primitives.iter().enumerate() {
+*/
             if let Some(u) = self.shader_class.uniform(UniformId::ModelMatrix) {
                 let mat = instance.transformation.mat4();
                 unsafe {gl::UniformMatrix4fv(u, 1, gl::FALSE, mat.as_ptr());}
@@ -149,43 +173,6 @@ impl <'a> ShaderInstantiable<'a> {
             }
         }
     }
-        /*
-        // for bone_set_pose in instance.bone_set_poses {
-        //  bone_set_pose.update(tick)
-        // }
-            //for (t,m,b) in self.meshes:
-            //if b>=0:
-            //bma = self.bone_set_poses[b]
-            //program.set_uniform_if("uBonesMatrices",
-            //lambda u:GL.glUniformMatrix4fv(u, bma.max_index, False, bma.data))
-            //program.set_uniform_if("uBonesScale",
-            //lambda u: GL.glUniform1f(u, 1.0) )
-            //pass
-        //else:
-            //program.set_uniform_if("uBonesScale",
-            //lambda u: GL.glUniform1f(u, 0.0) )
-            //pass
-            # Provide mesh matrix and material uniforms
-            program.set_uniform_if("uMeshMatrix",
-                                   lambda u: GL.glUniformMatrix4fv(u, 1, False, t.mat4()) )
-
-    instance bone matrices
-    instance model matrix
-    for (i, p) in render_recipe.primitives.iter().enumerate() {
-        m = matrix_for_primitives[i];
-        set uMeshMatrix to render_recipe.matrices[m] (if different to last)
-        set material info to that for shader_instantiable p.material_index,(if different to last)
-        set vao to that for shader_instantiable p.vertices_index,(if different to last)
-        p.index_offset, // byte_offset?
-        p.index_count,
-        let gl_type = p.primitive_type as gl_type,
-                gl::DrawElements( gl_type,
-                                  p.index_count,
-                                  index_type,
-                                  std::mem::transmute(byte_offset) );
-
-            }
-*/
 
     //zz All done
 }

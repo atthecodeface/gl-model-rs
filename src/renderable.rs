@@ -16,12 +16,21 @@ limitations under the License.
 @brief   An OpenGL Renderable implementation for a 3D Model
  */
 
-//a Renderable
+//a Imports
 use crate::{GlBuffer, BufferView, Texture, Material, Vertices};
+
+//a Renderable
+//tp Renderable
+/// Contains nothing right now
 pub struct Renderable {
 }
+
+//tp RenderContext
+/// The OpenGL context is global, and so no data is required for the [RenderContext]
 pub struct RenderContext {
 }
+
+//ip model3d::Renderable for Renderable
 impl model3d::Renderable for Renderable {
     type Context  = RenderContext;
     type Buffer   = GlBuffer;
@@ -31,47 +40,3 @@ impl model3d::Renderable for Renderable {
     type Vertices = Vertices;
 }
 
-// Vertex-attribute object
-/*
-pub type Vao = gl::types::GLuint;
-pub type BufferData<'a> = model3d::BufferData<'a, GlBuf>;
-pub type BufferView<'a> = model3d::BufferView<'a, GlBuf>;
-pub trait GlBufferData {
-    fn gl_create(&self, indices:bool);
-}
-impl <'a> GlBufferData for BufferData<'a> {
-    fn gl_create_data(&self) {
-    }
-}
-
-//a ShaderProgramClass
-pub trait ShaderProgramClass {
-    fn get_attr(&self, key:&str) -> Option<gl::types::GLuint>;
-    fn get_uniform(&self, key:&str) -> Option<gl::types::GLuint>;
-    fn gl_bind_attr_view(&self, key:&str, view:Option<&BufferView>) {
-        if let Some(attr) = self.get_attr(key) {
-            match view {
-                None       => {unsafe{gl::DisableVertexAttribArray(attr);}},
-                Some(view) => { /* view.gl_bind_attribute(attr) */; },
-            }
-        }
-    }
-}
-
-mod utils;
-mod shader;
-mod program;
-mod vertices;
-
-pub use shader::GlShader;
-pub use program::Program as GlProgram;
-
-pub use vertices::Vertices;
-
-//pub mod primitive;
-//pub mod mesh;
-//pub mod object;
-
-//pub mod shader;
-//pub use shader::{ShaderClass};
-*/
